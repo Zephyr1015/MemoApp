@@ -50,6 +50,15 @@ struct ContentView: View {
                         Text("新規作成")
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        exportMemos()
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                
+                
             }
         }
     }
@@ -61,6 +70,39 @@ struct ContentView: View {
         }
         // 保存を忘れない
         try? viewContext.save()
+    }
+    
+    private func exportMemos() {
+        let request = NSFetchRequest<Memo>(entityName: "Memo")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Memo.updatedAt, ascending: true)]
+        
+        do {
+            let memos = try viewContext.fetch(request)
+            let csvString = convertToCSV(memos: memos)
+            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let fileURL = documentsDirectory.appendingPathComponent("memos.csv")
+            try csvString.write(to: fileURL, atomically: true, encoding: .utf8)
+            shareCVS(fileURL: fileURL)
+        } catch {
+            print("获取备忘录数据失败: \(error)")
+        }
+    }
+    
+    private func convertToCSV(memos: [Memo]) -> String {
+        var csvString = "标题,内容,时间戳\n"
+        for memo in memos {
+            let title = memo.title ?? ""
+            let content = memo.content ?? ""
+            let timestamp = memo.updatedAt ?? Date()
+            let row = "\"\(title)\",\"\(content)\",\(timestamp.ISO8601Format())\n"
+            csvString += row
+        }
+        return csvString
+    }
+    
+    private func shareCVS(fileURL: URL) {
+        let activityViewController = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
+        UIApplication.shared.windows.first?.rootViewController?.present(activityViewController, animated: true, completion: nil)
     }
 }
 

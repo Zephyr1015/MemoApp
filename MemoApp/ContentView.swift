@@ -16,6 +16,8 @@ struct ContentView: View {
         animation: .default
     ) var fetchedMemoList: FetchedResults<Memo>
     
+    @State private var searchText: String = ""
+    
     var body: some View {
         NavigationView {
             List {
@@ -60,6 +62,21 @@ struct ContentView: View {
                 
                 
             }
+        }
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "検索")
+        // searchableの下に追加
+        .onChange(of: searchText) { newValue in
+            search(text: newValue)
+        }
+    }
+    
+    private func search(text: String) {
+        if text.isEmpty {
+            fetchedMemoList.nsPredicate = nil // ①
+        } else {
+            let titlePredicate: NSPredicate = NSPredicate(format: "title contains %@", text) // ②
+            let contentPredicate: NSPredicate = NSPredicate(format: "content contains %@", text) // ③
+            fetchedMemoList.nsPredicate = NSCompoundPredicate(orPredicateWithSubpredicates: [titlePredicate, contentPredicate]) //　④
         }
     }
     
